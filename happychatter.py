@@ -5,8 +5,6 @@ import uuid
 import base64
 
 # NOTE Model description helper
-
-
 def get_model_description(model):
     descriptions = {
         "SMALL": '''
@@ -121,9 +119,54 @@ def save_chat(logfile, In, Out):
     with open(logfile, "a") as logfile_stream:
         logfile_stream.write(In + "\n" + Out + "\n")
 
+# ANCHOR Settings Menu
+def settings_window():
+     # NOTE Building the GUI
+    settings_window = [
+        [sg.Text("Text Generation Settings")],
+        [sg.HorizontalSeparator()],
+        [sg.Text("Minimum number of generated tokens"), 
+         sg.Input(key="-MIN-", default_text="10")],
+        [sg.Text("Maximum number of generated tokens"), 
+         sg.Input(key="-max-", default_text="50")],
+        [sg.Text("Pick words based on their conditional probability"),
+         sg.Checkbox("", key="-PROB-", default=True)],
+        [sg.Text("Generation finishes if EOS (End of String) is reached"),
+         sg.Checkbox("", key="-EOS-", default=False)],
+        [sg.Text("Number of steps for each search path"),
+         sg.Input(key="-beam-", default_text="1")],
+        [sg.Text("Temperature (balancing creativity and precision)"),
+         sg.Input(key="-temp-", default_text="1.0")],
+        [sg.Text("Top K (How many potential answer are considered during sampling)"),
+         sg.Input(key="-top-k-", default_text="50")],
+        [sg.Text("Top P (Severity in selecting the answers)"),
+         sg.Input(key="-top-p-", default_text="1.0")],
+        [sg.Text("No ngram size repeat (the higher, the less repetitions but also less coherence)"),
+         sg.Input(key="-ngram-", default_text="0")],
+        [sg.Text("Bad words to avoid"),
+         sg.Multiline("", autoscroll=True, size=(30, 5), key="-BAD-")],
+        [sg.HorizontalSeparator()],
+        [sg.Text("Training Settings")],
+        [sg.Text("Not yet available")],
+        [sg.HorizontalSeparator()],
+        [sg.Button("Save"), sg.Button("Cancel")]
+    ]
+    settings = sg.Window('Settings', layout=settings_window)
+    # ANCHOR Event loop
+    while True:
+        # NOTE Reading events from the GUI
+        event, values = settings.read()
+        print(event, values)
+        # NOTE Managing close window
+        if event == sg.WIN_CLOSED or event == 'Exit' or event == 'Cancel':
+            break
+        elif event == 'Save':
+            # TODO Save a json
+            break
 
 # ANCHOR Entry point
 if __name__ == "__main__":
+    # TODO Load JSON with settings
     # NOTE Generating a random logfile name
     folder = "logs"
     rname = str(uuid.uuid4())
@@ -153,13 +196,18 @@ if __name__ == "__main__":
     icon = os.getcwd() + "/data/icon.png"
     sg.set_options(icon=base64.b64encode(open(icon, 'rb').read()))
     layout = [[sg.Text('HappyChatter AI Powered Chatbot')],
-              [[sg.Multiline(output, size=(80, 20), key=MLINE_KEY)],
-               [[sg.Text('Write something')],
-                [sg.Input(key='-IN-')]],
-               [[sg.Text('Status: Ready', key="Status")],
-               [sg.Button('Send'), sg.Exit()]]],
+              [sg.Multiline(output, 
+                            size=(100, 10), 
+                            key=MLINE_KEY, 
+                            autoscroll=True)],
+              [sg.Button("Settings", key="SETTINGS")],
+              [sg.Text('Write something'),
+               sg.Input(key='-IN-')],
+              [sg.Button('Send'), sg.Exit()],
+              [sg.Text('Status: Ready', key="Status")],
               [sg.HorizontalSeparator()],
-              [sg.Text("Train on a file: "), sg.FileBrowse(key="-TRAINFILE-")],
+              [sg.Text("Train on a file: "), 
+               sg.FileBrowse(key="-TRAINFILE-")],
               [sg.Button('Train')],
               [sg.HorizontalSeparator()],
               [sg.Text("Model Selection")],
@@ -300,20 +348,22 @@ if __name__ == "__main__":
             model_description = get_model_description(event)
             window["Description"].update(model_description)
             window.refresh()
-        elif event == "Credits":
+        elif event == "SETTINGS":
+            window.Hide()
+            settings_window()
+            # TODO Load JSON with settings
+            window.UnHide()
+        elif event == "CREDITS":
             window.Hide()
             sg.Popup('''
-                     All the models are to be credited to their
-                     authors as reported in their descriptions.
-                     The models are downloaded from https://huggingface.co/
-                     This software uses PySimpleGUI and Happytransform
-                     libraries to provide a nice user experience and the
-                     availability of the latest models distributed.
+                     All the models are to be credited to their authors as reported in their descriptions.
                      
-                     This software has been coded by TheCookingSenpai
-                     (http://github.com/thecookingsenpai) and is 
-                     distributed under Creative Commons CC-BY-ND license.
+                     The models are downloaded from https://huggingface.co/.
+                     
+                     This software uses PySimpleGUI and Happytransform libraries to provide a nice user experience and the availability of the latest models distributed.
+                     
+                     This software has been coded by TheCookingSenpai (http://github.com/thecookingsenpai) and is distributed under Creative Commons CC-BY-ND license.
                      ''')
-            window.Show()
+            window.UnHide()
     # NOTE Event close
     window.close()
