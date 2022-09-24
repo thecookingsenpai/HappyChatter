@@ -1,13 +1,19 @@
 from happytransformer import HappyGeneration, GENSettings, GENTrainArgs
 import os
 
+# SECTION Journal
+#
+# - TODO insert a feedback system to save the positive results and 
+#        call train() on them
+# - TODO Create a corpus to start with some informations
+# - TODO Find a way to keep the model loaded in memory
+#
+# !SECTION Journal
+
 # INSTRUCTIONS:
 # declare an instance using
 # gpt = neo.GPTNeo([model=model_type_as_below])
-# where model_type_as_below is one of the following:
-# small, medium, large
-# or the equivalent
-# 125M, 1.3B, 2.7B
+# where model_type_as_below is one of the described below
 # then you can either train the model on a dataset using
 # gpt.train(dataset_path)
 # or generate text using
