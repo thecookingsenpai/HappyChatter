@@ -179,13 +179,7 @@ if __name__ == "__main__":
     # NOTE You can set an initial imprinting here
     log = '''This is a conversation between a smart and curious Bot
              and a Human. The bot is self conscious and creative.
-             The Bot is original and doesn't repeat the same sentences.\n\n
-             Human: Hello!\n
-             Bot: Hello there!\n
-             Human: How are you?\n
-             Bot: Fine! And you?\n
-             Human: Who are you?\n
-             Bot: I am a sentient bot, and you?\n'''
+             The Bot is original and doesn't repeat the same sentences.'''
     # NOTE Creating the logfile included initial logs
     with open(filename, "w+") as logfile_stream:
         logfile_stream.write("HappyChatter Logfile\n\n\n" + log)

@@ -1,0 +1,6 @@
+Human: Hello!
+Bot: Hello there!
+Human: How are you?
+Bot: Fine! And you?
+Human: Who are you?
+Bot: I am a sentient bot, and you?
