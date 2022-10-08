@@ -1,8 +1,11 @@
 import PySimpleGUI as sg
 import os
-import neo
+# import neo
+import morpheus
 import uuid
 import base64
+import subprocess
+import sys
 
 # NOTE Model description helper
 def get_model_description(model):
@@ -164,6 +167,37 @@ def settings_window():
             # TODO Save a json
             break
 
+def determine_model(values):
+  # NOTE Model preparation
+  model_chosen = None
+  if values["SMALL"]:
+      model_chosen = "neo-small"
+  elif values["MEDIUM"]:
+      model_chosen = "neo-medium"
+  elif values["LARGE"]:
+      model_chosen = "neo-large"
+  elif values["NEOX"]:
+      model_chosen = "neox"
+  elif values["DIALO-SMALL"]:
+      model_chosen = "dialo-small"
+  elif values["DIALO-MEDIUM"]:
+      model_chosen = "dialo-medium"
+  elif values["DIALO-LARGE"]:
+      model_chosen = "dialo-large"
+  elif values["RAG"]:
+      model_chosen = "rag"
+  elif values["BLENDER-SMALL"]:
+      model_chosen = "blender-small"
+  elif values["BLENDER-MEDIUM"]:
+      model_chosen = "blender-medium"
+  elif values["BLENDER-LARGE"]:
+      model_chosen = "blender-large"
+  elif values["BLENDER-HUGE"]:
+      model_chosen = "blender-huge"
+  elif values["AEONA"]:
+      model_chosen = "aeona"
+  return model_chosen
+
 # ANCHOR Entry point
 if __name__ == "__main__":
     # TODO Load JSON with settings
@@ -177,9 +211,13 @@ if __name__ == "__main__":
     model_description = get_model_description("SMALL")
     output = "Output:\n\n"
     # NOTE You can set an initial imprinting here
-    log = '''This is a conversation between a smart and curious Bot
+    unused_log = '''This is a conversation between a smart and curious Bot
              and a Human. The bot is self conscious and creative.
-             The Bot is original and doesn't repeat the same sentences.'''
+             The Bot is original and doesn't repeat the same sentences.
+             Human: Hello!
+             Bot: Hello human!
+             '''
+    log = ""
     # NOTE Creating the logfile included initial logs
     with open(filename, "w+") as logfile_stream:
         logfile_stream.write("HappyChatter Logfile\n\n\n" + log)
@@ -194,7 +232,9 @@ if __name__ == "__main__":
                             size=(100, 10), 
                             key=MLINE_KEY, 
                             autoscroll=True)],
-              [sg.Button("Settings", key="SETTINGS")],
+              [sg.Button("Settings", key="SETTINGS"),
+               sg.Button("Download the selected model", key="Download")],
+              [sg.Text("", key="-OUTCMD-")],
               [sg.Text('Write something'),
                sg.Input(key='-IN-')],
               [sg.Button('Send'), sg.Exit()],
@@ -250,48 +290,63 @@ if __name__ == "__main__":
         # NOTE Managing close window
         if event == sg.WIN_CLOSED or event == 'Exit':
             break
+        # NOTE Download mode
+        elif event == "Download":
+            window["-OUTCMD-"].update("Starting the model manager, it may take some minutes....")
+            window["Status"].update(
+                "Status: Downloading model, it will take some time...")
+            window.refresh()
+            model_chosen = determine_model(values)            
+            # NOTE Model loading
+            print("[*] Loading model...")
+            # REVIEW Launching external download
+            external = True
+            if external:
+                # NOTE Starting a subprocess to download
+                downloader = subprocess.Popen(
+                               "python3 downloader.py " + model_chosen, 
+                               shell=True, 
+                               stdout=subprocess.PIPE, 
+                               stderr=subprocess.STDOUT)
+                # NOTE Capturing the output
+                output = ''
+                for line in downloader.stdout:
+                    # NOTE Updating the output hopefully in real time
+                    line = line.decode(errors='replace' if (sys.version_info) < (3, 5) else 'backslashreplace').rstrip()
+                    try:
+                        line = line.split("\n")[-1]
+                    except:
+                        pass
+                    output += line
+                    print("OUTPUT: " + line)
+                    # TODO Use an element to show the output
+                    window["-OUTCMD-"].update(line)
+                    window.refresh()        # yes, a 1-line if, so shoot me
+                # NOTE Until it finishes
+                retval = downloader.wait(None)      
+            # NOTE Fallback
+            else:
+                gpt = morpheus.GPTNeo(model=model_chosen)
+            print("[+] Model loaded.")
+            window["Status"].update(
+                "Status: model downloaded.")
+            window.refresh()
         # NOTE Text input event
         elif event == "Send":
             # NOTE Getting the input
             text_input = values["-IN-"]
             # NOTE Updating the output and the chat log
-            log += "Human: " + text_input + "\n"
+            log += text_input + "\n"
             output += "Human: " + text_input + "\n"
             window[MLINE_KEY].update(output)
             window["Status"].update(
                 "Status: loading model, please be patient...")
             window.refresh()
             # NOTE Model preparation
-            model_chosen = None
-            if values["SMALL"]:
-                model_chosen = "neo-small"
-            elif values["MEDIUM"]:
-                model_chosen = "neo-medium"
-            elif values["LARGE"]:
-                model_chosen = "neo-large"
-            elif values["NEOX"]:
-                model_chosen = "neox"
-            elif values["DIALO-SMALL"]:
-                model_chosen = "dialo-small"
-            elif values["DIALO-MEDIUM"]:
-                model_chosen = "dialo-medium"
-            elif values["DIALO-LARGE"]:
-                model_chosen = "dialo-large"
-            elif values["RAG"]:
-                model_chosen = "rag"
-            elif values["BLENDER-SMALL"]:
-                model_chosen = "blender-small"
-            elif values["BLENDER-MEDIUM"]:
-                model_chosen = "blender-medium"
-            elif values["BLENDER-LARGE"]:
-                model_chosen = "blender-large"
-            elif values["BLENDER-HUGE"]:
-                model_chosen = "blender-huge"
-            elif values["AEONA"]:
-                model_chosen = "aeona"
+            model_chosen = determine_model(values)
             # NOTE Model loading
             print("[*] Loading model...")
-            gpt = neo.GPTNeo(model=model_chosen)
+            gpt = morpheus.GPTNeo(model=model_chosen)
             print("[+] Model loaded.")
             window["Status"].update(
                 "Status: model loaded. Generating response...")
@@ -305,8 +360,8 @@ if __name__ == "__main__":
             print(raw)
             print("RAW RESULT: " + result)
             result = result.strip()
-            log += "Bot: " + result + "\n"
-            output += "Bot: " + result + "\n"
+            log += result + "\n"
+            output += result + "\n"
             window[MLINE_KEY].update(output)
             window["Status"].update("Status: saving the response")
             window.refresh()
@@ -330,6 +385,7 @@ if __name__ == "__main__":
         elif ((event == "SMALL") or
               (event == "MEDIUM") or
               (event == "LARGE") or
+              (event == "NEOX") or
               (event == "BLENDER-SMALL") or
               (event == "BLENDER-MEDIUM") or
               (event == "BLENDER-LARGE") or
@@ -361,3 +417,4 @@ if __name__ == "__main__":
             window.UnHide()
     # NOTE Event close
     window.close()
+  

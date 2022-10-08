@@ -1,3 +1,4 @@
+import time
 from happytransformer import HappyGeneration, GENSettings, GENTrainArgs
 import os
 
@@ -74,25 +75,46 @@ fp16: If true, enables half precision training which saves space by using 16 bit
 '''
 
 
+
 class GPTNeo:
 
     def __init__(self, model="neo-small"):
-        # Preparing the model
+        # ANCHOR Preparing the model
         self.model = None
         self.model_name = None
         self.model_folder = model
         self.set_model(model)
-        # Checking if model exists and loading it
+        # ANCHOR Checking if model exists and loading it
         final_folder = "models/" + self.model_folder
-        if not os.path.exists(final_folder + "/pytorch_model.bin"):
-            self.gen = HappyGeneration(self.model_name,
-                                       self.model)
-            self.gen.save(final_folder)
-        else:
-            self.gen = HappyGeneration(self.model_name,
-                                       self.model,
-                                       load_path=final_folder)
-        # Default settings
+        die = False
+        completed = False
+        exception = None
+        while (not die) and (not completed):
+            try:
+                if not os.path.exists(final_folder + "/pytorch_model.bin"):
+                    self.gen = HappyGeneration(self.model_name,
+                                            self.model)
+                    self.gen.save(final_folder)
+                    completed = True
+                else:
+                    self.gen = HappyGeneration(self.model_name,
+                                            self.model,
+                                            load_path=final_folder)
+                    completed = True
+            except Exception as e:
+                if "Connection broken" in str(e):
+                    print("[!] Connection broken! Retrying in 5 seconds...")
+                    time.sleep(5)
+                elif "timed out" in str(e):
+                    print("[x] Timed out. Waiting 60 seconds....")
+                    time.sleep(60)
+                else:
+                    exception = str(e)
+                    die = True
+        # Check if is to continue
+        if die:
+            raise Exception ("[!] " + exception)
+        # ANCHOR Default settings
         self.settings = None
         self.setted = False
 
@@ -230,4 +252,7 @@ class GPTNeo:
                                         top_k=50,
                                         temperature=0.7)
             result = self.gen.generate_text(input, args=self.settings)
-        return result.text, result
+            one_line_result = result.text.split('\n')[0]
+            if one_line_result.strip() == "":
+                one_line_result = result.text.split('\n')[1]
+        return one_line_result, result
